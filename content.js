@@ -1,7 +1,7 @@
 'use strict';
 
 var UPPERCASE_NUMERIC_HYPHEN_REGEX = /[A-Z0-9-]/;
-var JIRA_REGEX = /[A-Z]+-\d+/;
+var JIRA_REGEX = /([A-Z]+)-\d+/;
 
 function getJIRATicket(r) {
   // here startContainer == endContainer, startOffset == endOffset
@@ -106,7 +106,7 @@ function processMatch(range, word, e) {
     document.documentElement.appendChild(popup);
   }
 
-  popup.innerHTML = "<a href='" + window.createjiralink.config.jira_server + '/browse/' + word + "'>" + word + '</a>';
+  popup.innerHTML = "<a href='" + jiraServerForWord(word) + '/browse/' + word + "'>" + word + '</a>';
   popup.style.display = 'block';
   popup.style['z-index'] = 999;
   popup.style.position = 'absolute';
@@ -116,6 +116,16 @@ function processMatch(range, word, e) {
   popup.style.border = '1px solid #D0D0D0';
 
   window.createjiralink.prevword = word;
+}
+
+function jiraServerForWord(word) {
+  const match = word.match(JIRA_REGEX);
+  console.log("Project: " + match[1])
+  if(window.createjiralink.config.additional_jira_server_projects_set.has(match[1])) {
+    return window.createjiralink.config.additional_jira_server
+  } else {
+    return window.createjiralink.config.jira_server
+  }
 }
 
 function doSomething(e) {
@@ -161,7 +171,13 @@ document.addEventListener('keydown', onKeyDown);
 
 window.createjiralink = {};
 
-chrome.storage.sync.get({ jira_server: 'https://issues.apache.org/jira' }, function(data) {
-  console.log('Got JIRA server value ' + data.jira_server);
+chrome.storage.sync.get({
+  jira_server: 'https://issues.apache.org/jira',
+  additional_jira_server: '',
+  additional_jira_server_projects: ''
+}, function(data) {
+  console.log('Got JIRA settings:');
+  console.log(data);
   window.createjiralink.config = data;
+  window.createjiralink.config.additional_jira_server_projects_set = new Set(data.additional_jira_server_projects.split(','))
 });
